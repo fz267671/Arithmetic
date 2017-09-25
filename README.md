@@ -14,4 +14,4 @@ Windows:
 
 ```
 $ cd BIN/
-$ ArithmeticOpProject.exe -n 5 // 生成5道题目
+$ 直接运行ArithmeticOpProject.exe

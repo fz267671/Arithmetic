@@ -9,12 +9,7 @@
 - √ 支持带括号的多元复合运算
 - √ 运算符个数随机生成（考虑小学生运算复杂度，范围在2~10）
 ***
-## 用法:
-Windows:
 
-```
-$ cd BIN/
-$ 直接运行ArithmeticOpProject.exe
 # 第三次作业
 # first-commit zhy 实现基本功能，计时，统计错题对题数目并保存
 # second-commit zyg 完成多语言转化功能，以及题目数清零功能，判断输入是否合法的功能

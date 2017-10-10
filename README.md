@@ -12,4 +12,4 @@
 
 # 第三次作业
 ## first-commit zhy 实现基本功能，计时，统计错题对题数目并保存
-## second-commit zyg 完成多语言转化功能，以及题目数清零功能，判断输入是否合法的功能
+## second-commit onecatzyg 完成多语言转化功能，以及题目数清零功能，判断输入是否合法的功能

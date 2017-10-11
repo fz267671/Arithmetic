@@ -9,9 +9,6 @@
 - √ 支持带括号的多元复合运算
 - √ 运算符个数随机生成（考虑小学生运算复杂度，范围在2~10）
 ***
-## 用法:
-Windows:
-
-```
-$ cd BIN/
-$ 直接运行ArithmeticOpProject.exe
+#第三次作业
+##first-commit fz267671 1.0四则运算器，初步完成基本需求
+##second-commit onecatzyg 2.0四则运算器，增加多语言转换，正误数清零，输入合法性判断

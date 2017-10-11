@@ -7,39 +7,62 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.IO;
+using System.Resources;
+using System.Threading;
+using System.Globalization;
 
 namespace arithmetic_Operation
 {
     public partial class Form1 : Form
     {
-        public int problem_Nums; //总题数
-        public int problem_Now;
-        public double score = 100; //题目得分
-        public string rightAns; //四则运算结果
-        public static string expression = null;
-        public static Fraction[] opNum = new Fraction[20];  
+        private int t; //用于获取秒数
+        private int wrong_Number; //错误题数
+        private int nums_wrong; //当前错题数
+        private int correct_Number; //正确题数
+        private int problem_Nums; //总题数
+        private int problem_Now;
+        private int score = 100; //题目得分
+        private string rightAns; //四则运算结果
+        private ResourceManager rm; //获取资源文件内容
+        //文件路径（默认放在bin目录下）
+        private string path="data.txt";
+        private static string expression = null;
+        private static Fraction[] opNum = new Fraction[20];  
         public Form1()
         {
             InitializeComponent();
         }
-
+        /// <summary>
+        /// 程序运行时加载窗体
+        /// </summary>
         private void Form1_Load(object sender, EventArgs e)
         {
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo("zh-CHS");
+            UpDataMainFormUILanguage();
+            //初始化对错数量
+            this.init_Numbers();
+            label11.Text = correct_Number.ToString();
+            label12.Text = wrong_Number.ToString();
+            //初始化时间
+            this.timer1.Enabled = false;
+            this.timer1.Interval = 1000;//代表每秒改变一次时间
+            //初始化按钮
             label8.Text = "";
-            button2.Enabled = false;//让结束按钮不能使用
+            button2.Enabled = false;
             button3.Enabled = false;
             button4.Enabled = false;
-        }
-
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-        
         }
         /// <summary>
         /// 点击开始按钮，产生一定数量的题目并开始计时
         /// </summary>
         private void button1_Click(object sender, EventArgs e)
         {
+            //计时器清零，并开始计时
+            t = 0;
+            this.label10.Text = "00:00:00";
+            this.timer1.Enabled = true;
+
             button1.Enabled = false;
             button3.Enabled = true;
             button2.Enabled = false;
@@ -49,6 +72,7 @@ namespace arithmetic_Operation
             score = 100;
             //初始化运算式
             expression = "";
+            nums_wrong = 0;
             //计算四则运算式的正确结果 
             rightAns = new ExpressionHelper().getResOfPostfix();
             //显示第一道题目
@@ -56,7 +80,176 @@ namespace arithmetic_Operation
             label8.Text = expression;
         }
 
+        /// <summary>
+        /// 点击提交按钮，计算正确答案并批改
+        /// </summary>
+        private void button3_Click(object sender, EventArgs e)
+        {
+            //获取用户输入
+            string userAns = textBox2.Text.ToString();
+            //如果输入不是数字,要求重输
+            if (!isNumberic(userAns))
+            {
+                MessageBox.Show(rm.GetString("message1"), rm.GetString("message2"),
+MessageBoxButtons.OK, MessageBoxIcon.Error);
+                textBox2.Text = "";
+                return;
+            }
+            button3.Enabled = false;
+            button4.Enabled = true;
+            //如果已经是最后一题
+            if (problem_Now == problem_Nums)
+            {
+                button4.Enabled = false;
+                button2.Enabled = true;
+            } 
+            //判断对错,并改变对错题数量 
+            if (userAns == rightAns){
+                label9.Text = rm.GetString("result1");
+                this.correct_Number++; //正确题数+1
+                label11.Text = correct_Number.ToString();
+            }               
+            else
+            {
+                label9.Text = rm.GetString("result2") + rightAns;
+                this.wrong_Number++; //错误题数+1
+                label12.Text = wrong_Number.ToString();
+                //当前错题数+1
+                nums_wrong += 1;
+            }
+        }
+        /// <summary>
+        /// 点击下一题
+        /// </summary>
+        private void button4_Click(object sender, EventArgs e)
+        {
+            button4.Enabled = false;
+            button3.Enabled = true;
+            expression = "";
+            //当前题数+1
+            problem_Now += 1;
+            //计算四则运算式的正确结果 
+            rightAns = new ExpressionHelper().getResOfPostfix();
+            //显示第N道题目
+            label5.Text = "题目" + problem_Now.ToString() + ":";
+            label8.Text = expression;
+            textBox2.Text = "";
+        }
+        /// <summary>
+        /// 结束答题，计算总得分
+        /// </summary>
+        private void button2_Click(object sender, EventArgs e)
+        {          
+            this.timer1.Enabled = false;//停止计时
+            button1.Enabled = true;
+            button2.Enabled = false;
+            label7.Text = "";
+            score = 100 * (problem_Nums - nums_wrong) / problem_Nums;
+            label9.Text = "本次得分为：" + score.ToString();
+        }
+        /// <summary>
+        /// 时钟控件事件，动态改变时间
+        /// </summary>
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            t = t + 1;
+            this.label10.Text = GetAllTime(t);
+        }
+        /// <summary>
+        /// 关闭当前窗体时保存对错数量
+        /// </summary>
+        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            StreamWriter sw = new StreamWriter(path, false);
+            string text = correct_Number.ToString() + "\r\n" + wrong_Number.ToString();
+            sw.Write(text);
+            sw.Close();
+        }
+        /// <summary>
+        /// 通过正则表达式判断输入是否为数字
+        /// </summary>
+        protected bool isNumberic(string message)
+        {
+            System.Text.RegularExpressions.Regex rex =
+            new System.Text.RegularExpressions.Regex(@"^(-?[0-9]+[/
+]?[0-9]*)$");
+            if (rex.IsMatch(message))
+            {
+                return true;
+            }
+            else
+                return false;
+        }
+        /// <summary>
+        /// 从文件中获取对错数量
+        /// </summary>
+        private void init_Numbers()
+        {
+            StreamReader sr = null;
+            try
+            {
+                sr = new StreamReader(path, Encoding.Default);
+                this.correct_Number = int.Parse(sr.ReadLine());
+                this.wrong_Number = int.Parse(sr.ReadLine());
+            }
+            catch
+            {
+                MessageBox.Show("文件打不开或者文件不存在", "文件打开错误",
+MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                sr.Close();
+            }
+        }
+        /// <summary>
+        /// 计时函数,将秒数转成hh:mm:ss的时间格式
+        /// </summary>
+        private string GetAllTime(int time)
+        {
+            string hh, mm, ss;
 
+            int s = time % 60; // 转化为秒
+            int m = (time / 60) % 60;     // 分
+            int h = (time / 3600) % 60;     // 时
+
+            //秒格式00
+            if (s < 10)
+            {
+                ss = "0" + s.ToString();
+            }
+            else
+            {
+                ss = s.ToString();
+            }
+
+            //分格式00
+            if (m < 10)
+            {
+                mm = "0" + m.ToString();
+            }
+            else
+            {
+                mm = m.ToString();
+            }
+
+            //时格式00
+            if (h < 10)
+            {
+                hh = "0" + h.ToString();
+            }
+            else
+            {
+                hh = h.ToString();
+            }
+
+            //返回 hh:mm:ss.ff            
+            return hh + ":" + mm + ":" + ss;
+        }
+
+        /// <summary>
+        /// 随机四则运算式的生成和计算类
+        /// </summary>
         public class ExpressionHelper
         {
             Random ra = new Random(unchecked((int)DateTime.Now.Ticks));
@@ -290,7 +483,6 @@ namespace arithmetic_Operation
                 return 0;
             }
         }
-
         /// <summary>
         /// 分数类
         /// </summary>
@@ -324,57 +516,66 @@ namespace arithmetic_Operation
             }
         }
 
-        /// <summary>
-        /// 点击提交按钮，计算正确答案并批改
-        /// </summary>
-        private void button3_Click(object sender, EventArgs e)
+        private void 英文ToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            button3.Enabled = false;
-            button4.Enabled = true;
-            //如果已经是最后一题
-            if (problem_Now == problem_Nums)
-            {
-                button4.Enabled = false;
-                button2.Enabled = true;
-            } 
-            //获取用户输入
-            string userAns = textBox2.Text.ToString();
-            //判断对错 
-            if (userAns == rightAns)
-                label9.Text = "正确！";
-            else
-            {
-                label9.Text ="不正确！正确答案= "+rightAns;
-                //扣分
-                score -= 100 * 1.0 / problem_Nums;
-            }
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo("en");
+            UpDataMainFormUILanguage();
         }
-        /// <summary>
-        /// 点击下一题
-        /// </summary>
-        private void button4_Click(object sender, EventArgs e)
+
+        //根据当前的语言区域，更新主窗口的语言信息
+        private void UpDataMainFormUILanguage()
         {
-            button4.Enabled = false;
-            button3.Enabled = true;
-            expression = "";
-            //当前题数+1
-            problem_Now += 1;
-            //计算四则运算式的正确结果 
-            rightAns = new ExpressionHelper().getResOfPostfix();
-            //显示第N道题目
-            label5.Text = "题目" + problem_Now.ToString() + ":";
-            label8.Text = expression;
+            rm = new ResourceManager(typeof(Form1));
+            UpDataForm1(rm);
         }
-        /// <summary>
-        /// 结束答题，计算总得分
-        /// </summary>
-        private void button2_Click(object sender, EventArgs e)
+        //根据当前的语言区域，更新主窗口的语言
+        private void UpDataForm1(ResourceManager rm)
         {
-            button1.Enabled = true;
-            button2.Enabled = false;
-            label7.Text = "";
-            label9.Text = "本次得分为：" + score.ToString();
+            //菜单项
+            文件FToolStripMenuItem.Text = rm.GetString("start");
+            查看历史记录ToolStripMenuItem.Text = rm.GetString("history");
+            语言LToolStripMenuItem.Text = rm.GetString("language");
+            中文简体ToolStripMenuItem.Text = rm.GetString("zh-CHS");
+            中文繁体ToolStripMenuItem.Text = rm.GetString("zh-CHT");
+            英文ToolStripMenuItem.Text = rm.GetString("English");
+            帮助HToolStripMenuItem.Text = rm.GetString("help");
+            //按钮以及标签
+            label1.Text = rm.GetString("numbers");
+            label2.Text = rm.GetString("time_use");
+            label3.Text = rm.GetString("correct");
+            label4.Text = rm.GetString("wrong");
+            label5.Text = rm.GetString("question");
+            button3.Text = rm.GetString("submit");
+            button4.Text = rm.GetString("next");
+            button1.Text = rm.GetString("begin");
+            button2.Text = rm.GetString("end");
         }
+
+        private void 中文简体ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo("zh-CHS");
+            UpDataMainFormUILanguage();
+        }
+
+        private void 中文繁体ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo("zh-CHT");
+            UpDataMainFormUILanguage();
+        }
+        //将对错数量清零
+        private void button5_Click(object sender, EventArgs e)
+        {
+            correct_Number = 0;
+            wrong_Number = 0;
+            //重置
+            StreamWriter sw = new StreamWriter(path, false);
+            string text = correct_Number.ToString() + "\r\n" + wrong_Number.ToString();
+            sw.Write(text);
+            sw.Close();
+            label11.Text = correct_Number.ToString();
+            label12.Text = wrong_Number.ToString();
+        }
+
 
     }
 }
